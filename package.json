@@ -1,0 +1,21 @@
+{
+  "name": "restful_s3",
+  "version": "1.0.0",
+  "description": "RESTful service for interfacing with S3",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Goutham Reddy, Dewey Lu, Justin DeLuna",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.13.2",
+    "express": "^4.13.1",
+    "mongoose": "^4.0.8"
+  },
+  "devDependencies": {
+    "chai": "^3.2.0",
+    "chai-http": "^1.0.0",
+    "mocha": "^2.2.5"
+  }
+}
