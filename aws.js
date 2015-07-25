@@ -2,9 +2,9 @@ var AWS = require('aws-sdk');
 
 AWS.config.region = 'us-east-1';
 
-var s3 = new AWS.S3({params: {Bucket: 'justinsrd'}});
+var s3 = new AWS.S3({params: {Bucket: 'justinsrd2'}});
 
-/*s3.createBucket(function() {
+s3.createBucket(function() {
 
   var params = {Key: 'myTest', Body: 'Go Niners!'};
 
@@ -15,17 +15,19 @@ var s3 = new AWS.S3({params: {Bucket: 'justinsrd'}});
         console.log("Successfully uploaded data to myBucket/myKey");
   });
 });
-*/
 
+/*
 var params = {
-  Bucket: 'justinsrd', /* required */
-  Key: 'myTest' /* required */
+  Bucket: 'justinsrd',
+  Key: 'myTest3'
 };
 
 s3.getObject(params, function(err, data) {
-  if (err) { 
-    console.log(err.stack); 
+  if (err) {
+    console.log(err.stack);
   } else {
     console.log(data.Body.toString());
   }
 });
+
+*/
