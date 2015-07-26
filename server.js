@@ -3,6 +3,7 @@
 var express = require('express');
 var app = express();
 var mongoose = require('mongoose');
+var User = require('./models/User.js');
 
 //Routing
 var userRoutes = express.Router();
@@ -17,9 +18,7 @@ mongoose.connect(userURI, function(err) {
   }
   console.log('Successfully connected to MongoDB...\n');
   //console.log(userURI);
-})
-
-
+});
 
 //HomePage
 app.get('/', function() {
@@ -29,4 +28,4 @@ app.get('/', function() {
 var port = process.env.PORT || 3000;
 app.listen(port, function() {
   console.log('\nServer is running on port ' + port + '...\n');
-})
+});

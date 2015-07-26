@@ -3,7 +3,7 @@
 var mongoose = require('mongoose');
 var bodyParser = require('body-parser');
 var User = require('../models/User.js');
-var File = require('../models/File.js');
+//var File = require('../models/File.js');
 var AWS = require('aws-sdk');
 
 
@@ -49,6 +49,7 @@ module.exports = function(router) {
 
     });
 
+
   router.route('/user/:user/files')
     .get(function(req, res) {
       var params = {
@@ -70,24 +71,95 @@ module.exports = function(router) {
 
 
 
-
+//////////////////
+// THIS IS THE ONLY ROUTE THAT WORKS
+//////////////////
     .post(function(req, res) {
-      var params = {
-        Bucket: 'justinsrd44'
-      };
+      var curUser = req.params.user;
+      var fileName = req.body.fileName;
+      var fileContent = req.body.content;
+      var s3FileName;
+      var params = {};
+      var url;
 
-      params.Key = 'myTest42';
-      params.Body = 'THIS IS A NEW FUCKING PUT!';
-
-      s3.upload(params, function(err, data) {
+      User.findOne({username: curUser}, function(err, doc) {
         if (err) {
           console.log(err);
+
+        } else if (!doc) {
+          /*
+          var newUser = new User({
+            username: curUser,
+            files: []
+          });
+
+          newUser.save(function(error, data) {
+            if(error) {
+              console.log(error);
+            }
+            s3FileName = fileName + '-' + data._id;
+            params.Bucket = 'justinsrd44';
+            params.Key = s3FileName;
+            params.Body = fileContent;
+
+            s3.upload(params, function(err) {///datareq
+              if (err) {
+                console.log(err);
+              }
+              res.json({msg: 'Lol worked.'});
+              console.log('THIS IS ONE');
+            });
+
+            url = s3.getSignedUrl('getObject', {Bucket: params.Bucket, Key: s3FileName, Expires: 94608000});
+            data.files.push({fileName:fileName, url:url});
+            console.log('THIS IS TWO', url);
+            console.log(data);
+
+          });*/
+          res.json({msg:'User doesnt fucking exist.'});
+
+        } else {
+          s3FileName = fileName + '-' + doc._id;
+          params.Bucket = 'justinsrd44';
+          params.Key = s3FileName;
+          params.Body = fileContent;
+
+          s3.upload(params, function(err, data) {///datareq
+            if (err) {
+              console.log(err);
+            }
+            res.json({msg: 'Lol worked.'});
+            console.log('THIS IS ONE');
+          });
+
+          url = s3.getSignedUrl('getObject', {Bucket: params.Bucket, Key: s3FileName, Expires: 94608000});
+          
+          doc.files.push({fileName:fileName, url:url});
+
+          doc.save(function(error, data) {
+            if (err) {
+              console.log(err);
+            }
+            res.json({msg:'file was created.'})
+          });
         }
-        res.json(data);
       });
 
-      var url = s3.getSignedUrl('getObject', {Bucket: params.Bucket, Key: params.Key});
-      console.log('The url is:', url);
+/*
+      User.findOne({username: curUser}, function(err, data) {
+        if (err) {
+          console.log(error);
+        }
+        //data.files.push({fileName:fileName, url: url});
+        //data.files.push("hello world!");
+        console.log(data);
+        console.log('THIS IS THREE');
+        res.send('done');
+      });   
+*/
+      
+
+      
     })
 
 
