@@ -76,6 +76,7 @@ module.exports = function(router) {
     })
 //------------------------WORKS-----------------------------------------
 
+
 //------------------------WORKS-----------------------------------------
     .put(function(req, res) {
       var oldUsername = req.params.user;
@@ -152,7 +153,7 @@ module.exports = function(router) {
           params.Key = s3FileName;
           params.Body = fileContent;
 
-          s3.upload(params, function(err, data) {///datareq
+          s3.upload(params, function(err, data) {
             if (err) {
               console.log(err);
             }
@@ -247,38 +248,42 @@ module.exports = function(router) {
 
 
 
-
+//------------------------WORKS-----------------------------------------
     .put(function(req, res) {
-//========================RENAME================================//
       var oldFileName = req.params.file;
-      var newFileName = req.body.name;
+      var newFileName = req.body.fileName;
+      var newFileContent = req.body.content;
 
-      var params = {
-        Bucket: 'justinsrd44',
-        CopySource: 'justinsrd44/' + oldFileName,
-        Key: newFileName
-      };
-
-      s3.copyObject(params, function(err, dataNew) {
+      User.findOne({username: req.params.user}, function(err, doc) {
         if (err) {
           console.log(err);
+        } else if (!doc) {
+          res.json({msg:'User does not exist. Please make the user first!'});
+        } else if (oldFileName !== newFileName) {
+          res.json({msg: 'File could not be found.'});
         } else {
           var params = {
             Bucket: 'justinsrd44',
-            Key: oldFileName
+            Key: oldFileName + '-' + doc._id
           };
 
-          s3.deleteObject(params, function(err, data) {
-            if (err) {
-              console.log(err);
+          s3.getObject(params, function(error1, data) {
+            if (error1) {
+              console.log(error1);
+            } else {
+              params.Body = newFileContent;
+              s3.upload(params, function(error2, data) {
+                if (error2) {
+                  console.log(error2);
+                }
+                else {
+                  res.json({msg: 'File was updated!'});
+                }
+              });
             }
-            res.json({msg:'Successful rename.'})
           });
         }
-      })
+      });   
     });
-//========================RENAME================================//
 };
-
-
-
+//------------------------WORKS-----------------------------------------
