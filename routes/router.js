@@ -1,79 +1,138 @@
 'use strict';
 
 var mongoose = require('mongoose');
+var AWS = require('aws-sdk');
 var bodyParser = require('body-parser');
 var User = require('../models/User.js');
-//var File = require('../models/File.js');
-var AWS = require('aws-sdk');
 
 
 module.exports = function(router) {
 
   AWS.config.region = 'us-east-1';
-  var s3 = new AWS.S3();
   router.use(bodyParser.json());
+  var s3 = new AWS.S3();
+
 
   router.route('/users')
+//------------------------WORKS-----------------------------------------
     .get(function(req, res) {
-      s3.listBuckets(function(err, data) {
+      User.find({},{_id:0, __v:0, files:0}, function(err, data) {
         if (err) {
           console.log(err);
+        } else {
+          res.json(data);
         }
-
-        var bucketsList = [];
-        data.Buckets.forEach(function(bucket) {
-          bucketsList.push(bucket.Name);
-        });
-
-        res.json(bucketsList);
-      })
+      });
     })
+//------------------------WORKS-----------------------------------------
+
+
+
+//------------------------WORKS-----------------------------------------
     .post(function(req, res) {
-      var params = {Bucket: 'test'};
-      s3.createBucket(params, function(err, data) {
+
+      User.findOne({username: req.body.name}, function(err, doc) {
         if (err) {
           console.log(err);
+        } else if (doc) {
+          res.json({msg:'User already exists.'});
+        } else {
+          var newUser = new User({
+            username: req.body.name,
+            files: []
+          });
+
+          newUser.save(function(error, data) {
+            if (err) {
+              console.log(err);
+            }
+            res.json({msg:'New user was saved!'})
+          });
         }
-        res.json({msg: 'New bucket was created for ' + req.body.name + '!'});
       });
     });
+//------------------------WORKS-----------------------------------------
+
+
+
+
+
+
+
 
   router.route('/users/:user')
+//------------------------WORKS-----------------------------------------
     .get(function(req, res) {
-
+      var curUser = req.params.user;
+      User.findOne({username: curUser}, {_id:0,__v:0,files: 0}, function(err, data) {
+        if (err) {
+          console.log(err);
+        } else if (data == null) {
+          res.json({msg: 'User does not exist!'});
+        } else {
+          res.json({msg: 'User ' + curUser +' exists!'});
+        }
+      });
     })
+//------------------------WORKS-----------------------------------------
+
+//------------------------WORKS-----------------------------------------
     .put(function(req, res) {
+      var oldUsername = req.params.user;
+      var newUsername = req.body.user;
 
+      User.findOne({username: oldUsername}, function(err, data) {
+        if (err) {
+          console.log(err);
+        } else if (data == null) {
+          res.json({msg: 'User does not exist.'});
+        } else {
+          var newUser = new User({
+            _id: data._id,
+            username: newUsername,
+            files: data.files,
+            __v: data.__v
+          })
+          User.update({username: oldUsername}, newUser, function(error) {
+            if (error) {
+              console.log(error);
+            } else {
+              res.json({msg: 'User ' + oldUsername + ' has been updated to '+ newUsername +'!'});
+            }
+          });
+        }
+      });
     })
+//------------------------WORKS-----------------------------------------
+
+
+
     .delete(function(req, res) {
 
     });
 
 
-  router.route('/user/:user/files')
-    .get(function(req, res) {
-      var params = {
-        Bucket: 'justinsrd44'
-      };
 
-      s3.listObjects(params, function(err, data) {
+
+
+//------------------------WORKS-----------------------------------------
+  router.route('/users/:user/files')
+    .get(function(req, res) {
+      var curUser = req.params.user;
+      User.findOne({username: curUser}, {_id:0,__v:0}, function(err, data) {
         if (err) {
           console.log(err);
+        } else if (data == null) {
+          res.json({msg: 'User does not exist!'});
+        } else {
+          res.json(data.files);
         }
-        var filesList = [];
-        var newArr = data.Contents.forEach(function(ff) {
-          filesList.push(ff.Key);
-        });
-
-        res.json(filesList);
       });
     })
+//------------------------WORKS-----------------------------------------
 
 
-
-//////////////////
-// THIS IS THE ONLY ROUTE THAT WORKS
-//////////////////
+//------------------------WORKS-----------------------------------------
     .post(function(req, res) {
       var curUser = req.params.user;
       var fileName = req.body.fileName;
@@ -85,39 +144,8 @@ module.exports = function(router) {
       User.findOne({username: curUser}, function(err, doc) {
         if (err) {
           console.log(err);
-
         } else if (!doc) {
-          /*
-          var newUser = new User({
-            username: curUser,
-            files: []
-          });
-
-          newUser.save(function(error, data) {
-            if(error) {
-              console.log(error);
-            }
-            s3FileName = fileName + '-' + data._id;
-            params.Bucket = 'justinsrd44';
-            params.Key = s3FileName;
-            params.Body = fileContent;
-
-            s3.upload(params, function(err) {///datareq
-              if (err) {
-                console.log(err);
-              }
-              res.json({msg: 'Lol worked.'});
-              console.log('THIS IS ONE');
-            });
-
-            url = s3.getSignedUrl('getObject', {Bucket: params.Bucket, Key: s3FileName, Expires: 94608000});
-            data.files.push({fileName:fileName, url:url});
-            console.log('THIS IS TWO', url);
-            console.log(data);
-
-          });*/
-          res.json({msg:'User doesnt fucking exist.'});
-
+          res.json({msg:'User does not exist. Please make the user first!'});
         } else {
           s3FileName = fileName + '-' + doc._id;
           params.Bucket = 'justinsrd44';
@@ -128,8 +156,6 @@ module.exports = function(router) {
             if (err) {
               console.log(err);
             }
-            res.json({msg: 'Lol worked.'});
-            console.log('THIS IS ONE');
           });
 
           url = s3.getSignedUrl('getObject', {Bucket: params.Bucket, Key: s3FileName, Expires: 94608000});
@@ -140,28 +166,12 @@ module.exports = function(router) {
             if (err) {
               console.log(err);
             }
-            res.json({msg:'file was created.'})
+            res.json({msg:'File was saved!'})
           });
         }
-      });
-
-/*
-      User.findOne({username: curUser}, function(err, data) {
-        if (err) {
-          console.log(error);
-        }
-        //data.files.push({fileName:fileName, url: url});
-        //data.files.push("hello world!");
-        console.log(data);
-        console.log('THIS IS THREE');
-        res.send('done');
-      });   
-*/
-      
-
-      
+      });      
     })
-
+//------------------------WORKS-----------------------------------------
 
 
 
@@ -194,13 +204,45 @@ module.exports = function(router) {
       });
     });
 
-  router.route('/user/:user/files/:file')
-    .get(function(req, res) {
-      var params = {Bucket:'justinsrd', Key:'myTest'};
 
-      var url = s3.getSignedUrl('getObject', params);
-      res.send(url);
+
+
+
+
+//------------------------WORKS-----------------------------------------
+  router.route('/users/:user/files/:file')
+    .get(function(req, res) {
+      User.findOne({username: req.params.user}, function(err, doc) {
+        if (err) {
+          console.log(err);
+        } else if (!doc) {
+          res.json({msg:'User does not exist. Please make the user first!'});
+        } else {
+          var s3FileName = req.params.file + '-' + doc._id;
+          var params = {
+            Bucket: 'justinsrd44', 
+            Key: s3FileName
+          };
+          s3.getObject(params, function(err, data) {
+            if (err) {
+              console.log(err);
+            } else if (data === null) {
+              res.json({msg: 'File does not exist.'});
+            } else {
+              for (var i = 0; i < doc.files.length; i++) {
+                if (doc.files[i].fileName === req.params.file) {
+                  res.json(doc.files[i]);
+                }
+                res.json({msg: 'File could not be found!'});
+              }
+            }
+          });
+        }
+      });
     })
+//------------------------WORKS-----------------------------------------
+
+
 
 
 
