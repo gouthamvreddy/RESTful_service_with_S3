@@ -15,19 +15,3 @@ s3.createBucket(function() {
         console.log("Successfully uploaded data to myBucket/myKey");
   });
 });
-
-
-/*
-var params = {
-  Bucket: 'justinsrd', //REQUIRED
-  Key: 'myTest' //REQUIRED
-};
-
-s3.getObject(params, function(err, data) {
-  if (err) { 
-    console.log(err.stack); 
-  } else {
-    console.log(data.Body.toString());
-  }
-});
-*/
