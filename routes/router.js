@@ -10,20 +10,31 @@ var AWS = require('aws-sdk');
 module.exports = function(router) {
 
   AWS.config.region = 'us-east-1';
-  var s3 = new AWS.S3({params: {Bucket: 'justinsrd'}});
+  var s3 = new AWS.S3();
   router.use(bodyParser.json());
 
   router.route('/users')
     .get(function(req, res) {
-      res.json({msg:'all useres here'});
-    })
-    .post(function(req, res) {
-      var params = {Bucket: 'justinsrd2'};
-      s3.createBucket(function(err, data) {
+      s3.listBuckets(function(err, data) {
         if (err) {
           console.log(err);
         }
-        res.json({msg: 'worked!'});
+
+        var bucketsList = [];
+        data.Buckets.forEach(function(bucket) {
+          bucketsList.push(bucket.Name);
+        });
+
+        res.json(bucketsList);
+      })
+    })
+    .post(function(req, res) {
+      var params = {Bucket: 'test'};
+      s3.createBucket(params, function(err, data) {
+        if (err) {
+          console.log(err);
+        }
+        res.json({msg: 'New bucket was created for ' + req.body.name + '!'});
       });
     });
 
@@ -56,24 +67,39 @@ module.exports = function(router) {
         res.json(filesList);
       });
     })
+
+
+
+
     .post(function(req, res) {
       var params = {
         Bucket: 'justinsrd44'
-      }
+      };
 
-      params.Key = 'myTest41';
-      params.Body = 'Go Niners!';
+      params.Key = 'myTest42';
+      params.Body = 'THIS IS A NEW FUCKING PUT!';
 
       s3.upload(params, function(err, data) {
         if (err) {
           console.log(err);
         }
-        res.json({msg: 'File was saved!'});
+        res.json(data);
       });
+
+      var url = s3.getSignedUrl('getObject', {Bucket: params.Bucket, Key: params.Key});
+      console.log('The url is:', url);
     })
+
+
+
+
+
+
     .delete(function(req, res) {
 
-      var params = {Bucket: 'justinsrd'};
+      var params = {
+        Bucket: 'justinsrd'
+      };
 
       s3.listObjects(params, function(err, data) {
         if (err) {
@@ -96,12 +122,49 @@ module.exports = function(router) {
       });
     });
 
-  router.route('/user/:user/files/file')
+  router.route('/user/:user/files/:file')
     .get(function(req, res) {
+      var params = {Bucket:'justinsrd', Key:'myTest'};
 
+      var url = s3.getSignedUrl('getObject', params);
+      res.send(url);
     })
+
+
+
+
+
     .put(function(req, res) {
+//========================RENAME================================//
+      var oldFileName = req.params.file;
+      var newFileName = req.body.name;
 
+      var params = {
+        Bucket: 'justinsrd44',
+        CopySource: 'justinsrd44/' + oldFileName,
+        Key: newFileName
+      };
+
+      s3.copyObject(params, function(err, dataNew) {
+        if (err) {
+          console.log(err);
+        } else {
+          var params = {
+            Bucket: 'justinsrd44',
+            Key: oldFileName
+          };
+
+          s3.deleteObject(params, function(err, data) {
+            if (err) {
+              console.log(err);
+            }
+            res.json({msg:'Successful rename.'})
+          });
+        }
+      })
     });
-
+//========================RENAME================================//
 };
+
+
+
