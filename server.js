@@ -11,7 +11,7 @@ require('./routes/router.js')(userRoutes);
 app.use('/api', userRoutes);
 
 //Mongoose
-var userURI = process.env.MONGOLAB_URI || 'mongodb://user:password@ds061620.mongolab.com:61620/mydb'
+var userURI = process.env.MONGOLAB_URI || 'mongodb://' + process.env.MONGOUSER + ':' + process.env.MONGOPW + '@ds061620.mongolab.com:61620/mydb'
 mongoose.connect(userURI, function(err) {
   if (err) {
     console.log(err);
