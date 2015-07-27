@@ -12,9 +12,13 @@ module.exports = function(router) {
   router.use(bodyParser.json());
   var s3 = new AWS.S3();
 
-
+  /*******************************************
+  ('/users')
+  *******************************************/
   router.route('/users')
-//------------------------WORKS-----------------------------------------
+    //GET           ///////////////////////////////////////
+    //GET           ///////////////////////////////////////
+    //GET           ///////////////////////////////////////
     .get(function(req, res) {
       User.find({},{_id:0, __v:0, files:0}, function(err, data) {
         if (err) {
@@ -23,45 +27,44 @@ module.exports = function(router) {
           res.json(data);
         }
       });
-    })
-//------------------------WORKS-----------------------------------------
+    })///////////////  End ('/users') GET
 
-
-
-//------------------------WORKS-----------------------------------------
+    //POST           ///////////////////////////////////////
+    //POST           ///////////////////////////////////////
+    //POST           ///////////////////////////////////////
     .post(function(req, res) {
-
-      User.findOne({username: req.body.name}, function(err, doc) {
-        if (err) {
-          console.log(err);
-        } else if (doc) {
-          res.json({msg:'User already exists.'});
-        } else {
-          var newUser = new User({
-            username: req.body.name,
-            files: []
-          });
-
-          newUser.save(function(error, data) {
-            if (err) {
-              console.log(err);
-            }
-            res.json({msg:'New user was saved!'})
-          });
-        }
-      });
-    });
-//------------------------WORKS-----------------------------------------
-
-
-
+      if (!req.body.username || /^[a-z0-9]+$/.test(req.body.username) == false) {
+        res.json({msg:'Please enter a valid username of only numbers and lowercase letters.'});
+      } else {
+        User.findOne({username: req.body.username}, function(err, doc) {
+          if (err) {
+            console.log(err);
+          } else if (doc) {
+            res.json({msg:'User already exists.'});
+          } else {
+            var newUser = new User({
+              username: req.body.username,
+              files: []
+            });
+            newUser.save(function(err, data) {
+              if (err) {
+                console.log(err);
+              }
+              res.json({msg:'New user was saved!'})
+            });
+          }
+        });
+      }
+    });///////////////  End ('/users') POST
 
 
-
-
-
+  /*******************************************
+  ('/users/:user')
+  *******************************************/
   router.route('/users/:user')
-//------------------------WORKS-----------------------------------------
+    //GET           ///////////////////////////////////////
+    //GET           ///////////////////////////////////////
+    //GET           ///////////////////////////////////////
     .get(function(req, res) {
       var curUser = req.params.user;
       User.findOne({username: curUser}, {_id:0,__v:0,files: 0}, function(err, data) {
@@ -73,51 +76,95 @@ module.exports = function(router) {
           res.json({msg: 'User ' + curUser +' exists!'});
         }
       });
-    })
-//------------------------WORKS-----------------------------------------
+    })///////////////  End ('/users/:user') GET
 
-
-//------------------------WORKS-----------------------------------------
+    //PUT           ///////////////////////////////////////
+    //PUT           ///////////////////////////////////////
+    //PUT           ///////////////////////////////////////
     .put(function(req, res) {
       var oldUsername = req.params.user;
-      var newUsername = req.body.user;
+      var newUsername = req.body.username;
 
-      User.findOne({username: oldUsername}, function(err, data) {
+      if (!newUsername || /^[a-z0-9]+$/.test(newUsername) == false) {
+        res.json({msg:'Please enter a valid username of only numbers and lowercase letters.'});
+      } else if (oldUsername === newUsername) {
+        res.json({msg: 'Username was not changed.'});
+      } else {
+        User.find({username: newUsername}, function(err, data) {
+          if (err) {
+            console.log(err);
+          } else if (data.length > 0) {
+            console.log(data);
+            res.json({msg: 'User "'+ newUsername + '" already exists.'});
+          } else {
+            User.findOne({username: oldUsername}, function(err, data) {
+              if (err) {
+                console.log(err);
+              } else if (data == null) {
+                res.json({msg: 'User ' + oldUsername + ' does not exist.'});
+              } else {
+                var newUser = new User({
+                  _id: data._id,
+                  username: newUsername,
+                  files: data.files,
+                  __v: data.__v
+                });
+                User.update({username: oldUsername}, newUser, function(err) {
+                  if (err) {
+                    console.log(err);
+                  } else {
+                    res.json({msg: 'User ' + oldUsername + ' has been updated to '+ newUsername +'!'});
+                  }
+                });
+              }
+            });
+          }
+        });
+      }
+    })///////////////  End ('/users/:user') PUT
+
+    //DELETE           ///////////////////////////////////////
+    //DELETE           ///////////////////////////////////////
+    //DELETE           ///////////////////////////////////////
+    .delete(function(req, res) {
+      var curUser = req.params.user;
+
+      User.findOne({username: curUser}, function(err, doc) {
         if (err) {
           console.log(err);
-        } else if (data == null) {
-          res.json({msg: 'User does not exist.'});
+        } else if (doc == null) {
+          res.json({msg: 'User does not exist!'});
         } else {
-          var newUser = new User({
-            _id: data._id,
-            username: newUsername,
-            files: data.files,
-            __v: data.__v
-          })
-          User.update({username: oldUsername}, newUser, function(error) {
-            if (error) {
-              console.log(error);
-            } else {
-              res.json({msg: 'User ' + oldUsername + ' has been updated to '+ newUsername +'!'});
+          var params = {
+            Bucket:'justinsrd44',
+            Delete:{
+              Objects: []
             }
+          };
+          for (var i = 0; i < doc.files.length; i++){
+            var s3FileName = doc.files[i].fileName + "-" + doc._id;
+            params.Delete.Objects.push({Key: s3FileName});
+          }
+          s3.deleteObjects(params, function(err, data) {
+            User.remove({username: curUser}, function(err, data) {
+              if (err) {
+                console.log(err);
+              }
+              res.json({msg: 'User ' + curUser +' has been deleted!'});
+            });
           });
         }
       });
-    })
-//------------------------WORKS-----------------------------------------
+    });///////////////  End ('/users/:user') DELETE
 
 
-
-    .delete(function(req, res) {
-
-    });
-
-
-
-
-
-//------------------------WORKS-----------------------------------------
+  /*******************************************
+  ('/users/:user/files')
+  *******************************************/
   router.route('/users/:user/files')
+    //GET           ///////////////////////////////////////
+    //GET           ///////////////////////////////////////
+    //GET           ///////////////////////////////////////
     .get(function(req, res) {
       var curUser = req.params.user;
       User.findOne({username: curUser}, {_id:0,__v:0}, function(err, data) {
@@ -129,89 +176,116 @@ module.exports = function(router) {
           res.json(data.files);
         }
       });
-    })
-//------------------------WORKS-----------------------------------------
+    })///////////////  End ('/users/:user/files') GET
 
-
-//------------------------WORKS-----------------------------------------
+    //POST           ///////////////////////////////////////
+    //POST           ///////////////////////////////////////
+    //POST           ///////////////////////////////////////
     .post(function(req, res) {
       var curUser = req.params.user;
       var fileName = req.body.fileName;
       var fileContent = req.body.content;
-      var s3FileName;
-      var params = {};
       var url;
+
+      if (!req.body.fileName || req.body.Filename === '') {
+        res.json({msg: 'Invalid input. Please enter a fileName.'});
+      } else if (/^[a-z0-9]+$/.test(fileName) == false) {
+        res.json({msg:'Please enter a valid filename of only numbers and lowercase letters.'});
+      } else {
+        User.findOne({username: curUser}, function(err, doc) {
+          if (err) {
+            console.log(err);
+          } else if (!doc) {
+            res.json({msg:'User does not exist. Please make the user first!'});
+          } else {
+            var s3FileName = fileName + '-' + doc._id;
+            var params = {
+              Bucket: 'justinsrd44',
+              Key: fileName + '-' + doc._id
+            };
+            console.log(params);
+
+            s3.getObject(params, function(err, data) {
+              if (data) {
+                res.json({msg: 'File already exists.'});
+              } else {
+
+                params.Body = fileContent;
+                s3.upload(params, function(err1, data) {
+                  if (err1) {
+                    console.log(err1);
+                  }
+                });
+
+                url = s3.getSignedUrl('getObject', {Bucket: params.Bucket, Key: s3FileName, Expires: 94608000});
+                doc.files.push({fileName:fileName, url:url});
+                doc.save(function(err, data) {
+                  if (err) {
+                    console.log(err);
+                  }
+                  res.json({msg:'File was saved!'})
+                });
+              }
+            });
+          }
+        });
+      }      
+    })///////////////  End ('/users/:user/files') POST
+
+    //DELETE           ///////////////////////////////////////
+    //DELETE           ///////////////////////////////////////
+    //DELETE           ///////////////////////////////////////
+    .delete(function(req, res) {
+      var curUser = req.params.user;
 
       User.findOne({username: curUser}, function(err, doc) {
         if (err) {
           console.log(err);
-        } else if (!doc) {
-          res.json({msg:'User does not exist. Please make the user first!'});
+        } else if (doc == null) {
+          res.json({msg: 'User does not exist!'});
         } else {
-          s3FileName = fileName + '-' + doc._id;
-          params.Bucket = 'justinsrd44';
-          params.Key = s3FileName;
-          params.Body = fileContent;
-
-          s3.upload(params, function(err, data) {
-            if (err) {
-              console.log(err);
+          var params = {
+            Bucket:'justinsrd44',
+            Delete:{
+              Objects: []
             }
-          });
-
-          url = s3.getSignedUrl('getObject', {Bucket: params.Bucket, Key: s3FileName, Expires: 94608000});
-          
-          doc.files.push({fileName:fileName, url:url});
-
-          doc.save(function(error, data) {
-            if (err) {
-              console.log(err);
-            }
-            res.json({msg:'File was saved!'})
-          });
-        }
-      });      
-    })
-//------------------------WORKS-----------------------------------------
-
-
-
-
-
-    .delete(function(req, res) {
-
-      var params = {
-        Bucket: 'justinsrd'
-      };
-
-      s3.listObjects(params, function(err, data) {
-        if (err) {
-          console.log(err);
-        }
-
-        params.Delete = {};
-        params.Delete.Objects = [];
-
-        data.Contents.forEach(function(file) {
-          params.Delete.Objects.push({Key: file.Key});
-        });
-
-        s3.deleteObjects(params, function(err, data) {
-          if (err) {
-            console.log(err);
+          };
+          for (var i = 0; i < doc.files.length; i++){
+            var s3FileName = doc.files[i].fileName + "-" + doc._id;
+            params.Delete.Objects.push({Key: s3FileName});
           }
-          res.json({msg: 'All files deleted!'});
-        });
+          s3.deleteObjects(params, function(err, data) {
+            if (err) {
+              console.log(err);
+              res.json({msg: 'There are no files to be deleted.'});
+            } else {
+              var updatedUser = new User({
+                _id: doc._id,
+                username: doc.username,
+                files: [],
+                __v: doc.__v
+              });
+              User.update({username: curUser}, updatedUser, function(err) {
+                if (err) {
+                  console.log(err);
+                } else {
+                  res.json({msg: 'All files for user ' + curUser + ' have been deleted!'});
+                }
+              });
+            }
+          });
+        }
       });
-    });
+    });///////////////  End ('/users/:user/files') DELETE
 
 
-
-
-
-
-//------------------------WORKS-----------------------------------------
+  /*******************************************
+  ('/users/:user/files/:file')
+  *******************************************/
   router.route('/users/:user/files/:file')
+    //GET           ///////////////////////////////////////
+    //GET           ///////////////////////////////////////
+    //GET           ///////////////////////////////////////
     .get(function(req, res) {
       User.findOne({username: req.params.user}, function(err, doc) {
         if (err) {
@@ -224,66 +298,104 @@ module.exports = function(router) {
             Bucket: 'justinsrd44', 
             Key: s3FileName
           };
-          s3.getObject(params, function(err, data) {
-            if (err) {
-              console.log(err);
-            } else if (data === null) {
-              res.json({msg: 'File does not exist.'});
-            } else {
-              for (var i = 0; i < doc.files.length; i++) {
-                if (doc.files[i].fileName === req.params.file) {
-                  res.json(doc.files[i]);
-                }
-                res.json({msg: 'File could not be found!'});
-              }
+          var fileFound = false;
+          var fileFoundIndex;
+          for (var i = 0; i < doc.files.length; i++) {
+            if (doc.files[i].fileName === req.params.file) {
+              fileFound = true;
+              fileFoundIndex = i;
             }
-          });
+          }
+          if (fileFound === true) {
+            res.json(doc.files[fileFoundIndex]);
+          } else {
+            res.send('File does not exist.');
+          }
         }
       });
-    })
-//------------------------WORKS-----------------------------------------
+    })///////////////  End ('/users/:user/files/:file') GET
 
-
-
-
-
-
-//------------------------WORKS-----------------------------------------
+    //PUT           ///////////////////////////////////////
+    //PUT           ///////////////////////////////////////
+    //PUT           ///////////////////////////////////////
     .put(function(req, res) {
       var oldFileName = req.params.file;
       var newFileName = req.body.fileName;
       var newFileContent = req.body.content;
 
-      User.findOne({username: req.params.user}, function(err, doc) {
-        if (err) {
-          console.log(err);
-        } else if (!doc) {
-          res.json({msg:'User does not exist. Please make the user first!'});
-        } else if (oldFileName !== newFileName) {
-          res.json({msg: 'File could not be found.'});
-        } else {
-          var params = {
-            Bucket: 'justinsrd44',
-            Key: oldFileName + '-' + doc._id
-          };
+      if (!newFileName || newFileName === '') {
+        res.json({msg: 'Invalid input. Please enter a fileName.'});
+      } else if (/^[a-z0-9]+$/.test(newFileName) == false) {
+        res.json({msg:'Please enter a valid filename of only numbers and lowercase letters.'});
+      } else {
+        User.findOne({username: req.params.user}, function(err, doc) {
+          if (err) {
+            console.log(err);
+          } else if (!doc) {
+            res.json({msg:'User does not exist. Please make the user first!'});
+          } else {
 
-          s3.getObject(params, function(error1, data) {
-            if (error1) {
-              console.log(error1);
+            var fileAlreadyExists = false;
+
+            for (var i = 0; i < doc.files.length; i++) {
+              if (doc.files[i].fileName === newFileName) {
+                fileAlreadyExists = true;
+              }
+            }
+
+            if (fileAlreadyExists === true) {
+              res.json({msg: newFileName + ' already exists.'});
             } else {
-              params.Body = newFileContent;
-              s3.upload(params, function(error2, data) {
-                if (error2) {
-                  console.log(error2);
-                }
-                else {
-                  res.json({msg: 'File was updated!'});
+              var params = {
+                Bucket: 'justinsrd44',
+                Key: oldFileName + '-' + doc._id
+              };
+              s3.getObject(params, function(err, data) {
+                if (err) {
+                  console.log(err);
+                  res.json({msg: 'File ' + oldFileName + ' does not exist.'});
+                } else {
+                  s3.deleteObject(params, function(err, data3) {
+                    if (err) {
+                      console(err);
+                    }
+                    for (var i = 0; i < doc.files.length; i++) {
+                      if (doc.files[i].fileName === oldFileName) {
+                        doc.files.splice([i],1);
+                        doc.save(function(err, data) {
+                          if (err) {
+                            console.log(err);
+                          }
+                        });
+                      }
+                    }
+                  });
+
+                  var newParams = {
+                    Bucket: 'justinsrd44',
+                    Key: newFileName + '-' + doc._id,
+                    Body: newFileContent
+                  };
+                  s3.upload(newParams, function(err, data) {
+                    if (err) {
+                      console.log(err);
+                    }
+                    
+                  });
+                  
+                  var url = s3.getSignedUrl('getObject', {Bucket: newParams.Bucket, Key: newFileName+'-'+doc._id, Expires: 94608000});
+                  doc.files.push({fileName: newFileName, url:url});
+                  doc.save(function(err, data) {
+                    if (err) {
+                      console.log(err);
+                    }
+                    res.json({msg: 'File was updated!'});
+                  });
                 }
               });
             }
-          });
-        }
-      });   
-    });
-};
-//------------------------WORKS-----------------------------------------
+          }
+        });
+      } 
+    });///////////////  End ('/users/:user/files/:file') PUT
+};/////End module.exports
