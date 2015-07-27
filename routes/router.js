@@ -8,10 +8,10 @@ var User = require('../models/User.js');
 
 module.exports = function(router) {
 
-  AWS.config.region = 'us-east-1';
+  AWS.config.region = 'us-west-2';
   router.use(bodyParser.json());
   var s3 = new AWS.S3();
-
+  var curBucket = process.env.BUCKETNAME ? process.env.BUCKETNAME : 'justinsrd-cf';
   /*******************************************
   ('/users')
   *******************************************/
@@ -136,7 +136,7 @@ module.exports = function(router) {
           res.json({msg: 'User does not exist!'});
         } else {
           var params = {
-            Bucket:'justinsrd44',
+            Bucket: curBucket,
             Delete:{
               Objects: []
             }
@@ -200,7 +200,7 @@ module.exports = function(router) {
           } else {
             var s3FileName = fileName + '-' + doc._id;
             var params = {
-              Bucket: 'justinsrd44',
+              Bucket: 'justinsrd-cf',
               Key: fileName + '-' + doc._id
             };
             console.log(params);
@@ -245,7 +245,7 @@ module.exports = function(router) {
           res.json({msg: 'User does not exist!'});
         } else {
           var params = {
-            Bucket:'justinsrd44',
+            Bucket: curBucket,
             Delete:{
               Objects: []
             }
@@ -295,7 +295,7 @@ module.exports = function(router) {
         } else {
           var s3FileName = req.params.file + '-' + doc._id;
           var params = {
-            Bucket: 'justinsrd44', 
+            Bucket:  curBucket, 
             Key: s3FileName
           };
           var fileFound = false;
@@ -347,7 +347,7 @@ module.exports = function(router) {
               res.json({msg: newFileName + ' already exists.'});
             } else {
               var params = {
-                Bucket: 'justinsrd44',
+                Bucket:  curBucket,
                 Key: oldFileName + '-' + doc._id
               };
               s3.getObject(params, function(err, data) {
@@ -372,7 +372,7 @@ module.exports = function(router) {
                   });
 
                   var newParams = {
-                    Bucket: 'justinsrd44',
+                    Bucket:  curBucket,
                     Key: newFileName + '-' + doc._id,
                     Body: newFileContent
                   };
