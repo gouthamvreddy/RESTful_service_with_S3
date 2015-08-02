@@ -50,7 +50,7 @@ module.exports = function(router) {
               if (err) {
                 console.log(err);
               }
-              res.json({msg:'New user was saved!'})
+              res.json({msg:'New user "' + req.body.username + '" was created!'})
             });
           }
         });
@@ -71,9 +71,9 @@ module.exports = function(router) {
         if (err) {
           console.log(err);
         } else if (data == null) {
-          res.json({msg: 'User does not exist!'});
+          res.json({msg: 'User does not exist.'});
         } else {
-          res.json({msg: 'User ' + curUser +' exists!'});
+          res.json({msg: 'User "' + curUser + '" exists!'});
         }
       });
     })///////////////  End ('/users/:user') GET
@@ -101,7 +101,7 @@ module.exports = function(router) {
               if (err) {
                 console.log(err);
               } else if (data == null) {
-                res.json({msg: 'User ' + oldUsername + ' does not exist.'});
+                res.json({msg: 'User "' + oldUsername + '" does not exist.'});
               } else {
                 var newUser = new User({
                   _id: data._id,
@@ -113,7 +113,7 @@ module.exports = function(router) {
                   if (err) {
                     console.log(err);
                   } else {
-                    res.json({msg: 'User ' + oldUsername + ' has been updated to '+ newUsername +'!'});
+                    res.json({msg: 'User "' + oldUsername + '" has been updated to "'+ newUsername +'"!'});
                   }
                 });
               }
@@ -133,7 +133,7 @@ module.exports = function(router) {
         if (err) {
           console.log(err);
         } else if (doc == null) {
-          res.json({msg: 'User does not exist!'});
+          res.json({msg: 'User does not exist.'});
         } else {
           var params = {
             Bucket: curBucket,
@@ -171,7 +171,7 @@ module.exports = function(router) {
         if (err) {
           console.log(err);
         } else if (data == null) {
-          res.json({msg: 'User does not exist!'});
+          res.json({msg: 'User does not exist.'});
         } else {
           res.json(data.files);
         }
@@ -203,7 +203,6 @@ module.exports = function(router) {
               Bucket: 'justinsrd-cf',
               Key: fileName + '-' + doc._id
             };
-            console.log(params);
 
             s3.getObject(params, function(err, data) {
               if (data) {
@@ -211,9 +210,9 @@ module.exports = function(router) {
               } else {
 
                 params.Body = fileContent;
-                s3.upload(params, function(err1, data) {
-                  if (err1) {
-                    console.log(err1);
+                s3.upload(params, function(err, data) {
+                  if (err) {
+                    console.log(err);
                   }
                 });
 
@@ -242,7 +241,7 @@ module.exports = function(router) {
         if (err) {
           console.log(err);
         } else if (doc == null) {
-          res.json({msg: 'User does not exist!'});
+          res.json({msg: 'User does not exist.'});
         } else {
           var params = {
             Bucket: curBucket,
